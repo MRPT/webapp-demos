@@ -137,7 +137,7 @@ void TestDisplay3D() {
   }
 
   // EMS context:
-  emscripten_set_canvas_element_size("#canvas", 100, 100);
+  emscripten_set_canvas_element_size("#canvas", 800, 600);
 
   EmscriptenWebGLContextAttributes attrs;
   emscripten_webgl_init_context_attributes(&attrs);
