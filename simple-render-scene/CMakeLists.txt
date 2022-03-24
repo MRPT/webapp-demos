@@ -26,6 +26,9 @@ set(CMAKE_EXECUTABLE_SUFFIX ".html")
 # Define the executable target:
 add_executable(${PROJECT_NAME} main.cpp)
 
+target_compile_options(${PROJECT_NAME} PRIVATE -s USE_SDL=2)
+target_link_options(${PROJECT_NAME} PRIVATE -s USE_SDL=2)
+
 target_link_libraries(${PROJECT_NAME} 
     mrpt::opengl
     # Workarounds to static mrpt!

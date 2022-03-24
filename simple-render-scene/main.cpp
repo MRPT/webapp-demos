@@ -7,7 +7,10 @@
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#define GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL.h>
+#include <SDL_opengles2.h>
+
 #include <GLES/gl.h>
 #include <GLES/glext.h>
 #include <GLES3/gl3.h>
@@ -35,6 +38,30 @@
     }                                                                          \
   }
 
+static bool quitting = false;
+static SDL_Window *window = NULL;
+static SDL_GLContext gl_context;
+static mrpt::opengl::COpenGLScene::Ptr theScene;
+
+void render() {
+  SDL_GL_MakeCurrent(window, gl_context);
+
+  theScene->render();
+
+  SDL_GL_SwapWindow(window);
+}
+
+void update() {
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event.type == SDL_QUIT) {
+      quitting = true;
+    }
+  }
+
+  render();
+};
+
 // ------------------------------------------------------
 //				TestDisplay3D
 // ------------------------------------------------------
@@ -42,7 +69,7 @@ void TestDisplay3D() {
   using namespace mrpt;
   using namespace mrpt::opengl;
 
-  COpenGLScene::Ptr theScene = COpenGLScene::Create();
+  theScene = COpenGLScene::Create();
 
   // Add a clone viewport, using [0,1] factor X,Y,Width,Height coordinates:
   {
@@ -136,14 +163,12 @@ void TestDisplay3D() {
     theScene->insert(obj);
   }
 
-  // EMS context:
   emscripten_set_canvas_element_size("#canvas", 800, 600);
-
   EmscriptenWebGLContextAttributes attrs;
   emscripten_webgl_init_context_attributes(&attrs);
 
   attrs.enableExtensionsByDefault = 1;
-  attrs.majorVersion = 2;
+  attrs.majorVersion = 3;
   attrs.minorVersion = 0;
 
   EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context =
@@ -152,8 +177,10 @@ void TestDisplay3D() {
     printf("Skipped: WebGL 2 is not supported.\n");
     return;
   }
-  emscripten_webgl_make_context_current(context);
 
+  std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
+
+  emscripten_webgl_make_context_current(context);
   theScene->render();
 }
 
