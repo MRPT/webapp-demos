@@ -178,9 +178,12 @@ void TestDisplay3D() {
     return;
   }
 
-  std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
-
   emscripten_webgl_make_context_current(context);
+  glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  // std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
+
   theScene->render();
 }
 
