@@ -7,16 +7,14 @@
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#define GL_GLEXT_PROTOTYPES 1
-#include <SDL.h>
-#include <SDL_opengles2.h>
-
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-#include <GLES3/gl3.h>
-#include <assert.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
+
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include "/home/jlblanco/code/mrpt/3rdparty/nanogui/ext/glfw/deps/linmath.h"
+#include <GLFW/glfw3.h>
+
 #include <mrpt/math/TPose3D.h>
 #include <mrpt/opengl/CAxis.h>
 #include <mrpt/opengl/CBox.h>
@@ -28,39 +26,19 @@
 
 #include <iostream>
 
-#define GL_CALL(x)                                                             \
-  {                                                                            \
-    x;                                                                         \
-    GLenum error = glGetError();                                               \
-    if (error != GL_NO_ERROR) {                                                \
-      printf("GL ERROR: %d,  %s\n", (int)error, #x);                           \
-      assert(false);                                                           \
-    }                                                                          \
-  }
-
-static bool quitting = false;
-static SDL_Window *window = NULL;
-static SDL_GLContext gl_context;
 static mrpt::opengl::COpenGLScene::Ptr theScene;
 
-void render() {
-  SDL_GL_MakeCurrent(window, gl_context);
-
-  theScene->render();
-
-  SDL_GL_SwapWindow(window);
+static void error_callback(int error, const char *description) {
+  fprintf(stderr, "Error: %s\n", description);
+}
+static void key_callback(GLFWwindow *window, int key, int scancode, int action,
+                         int mods) {
+  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-void update() {
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    if (event.type == SDL_QUIT) {
-      quitting = true;
-    }
-  }
-
-  render();
-};
+std::function<void()> loop;
+void main_loop() { loop(); }
 
 // ------------------------------------------------------
 //				TestDisplay3D
@@ -120,29 +98,6 @@ void TestDisplay3D() {
     obj->setName("USER_MOUSE_PICK");
     theScene->insert(obj);
   }
-
-  emscripten_set_canvas_element_size("#canvas", 800, 600);
-  EmscriptenWebGLContextAttributes attrs;
-  emscripten_webgl_init_context_attributes(&attrs);
-
-  attrs.enableExtensionsByDefault = 1;
-  attrs.majorVersion = 3;
-  attrs.minorVersion = 3;
-
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context =
-      emscripten_webgl_create_context("#canvas", &attrs);
-  if (!context) {
-    printf("Skipped: WebGL 2 is not supported.\n");
-    return;
-  }
-
-  emscripten_webgl_make_context_current(context);
-  glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-  // std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
-
-  theScene->render();
 }
 
 // ------------------------------------------------------
@@ -150,7 +105,54 @@ void TestDisplay3D() {
 // ------------------------------------------------------
 int main() {
   try {
+
+    glfwSetErrorCallback(error_callback);
+
+    if (!glfwInit())
+      exit(EXIT_FAILURE);
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    auto window =
+        glfwCreateWindow(800, 600, "Simple example", nullptr, nullptr);
+    if (!window) {
+      glfwTerminate();
+      exit(EXIT_FAILURE);
+    }
+    glfwSetKeyCallback(window, key_callback);
+    glfwMakeContextCurrent(window);
+
+    glfwSwapInterval(1);
+
     TestDisplay3D();
+
+    // std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
+
+    float x = 0, y = 0, z = 0;
+    theScene->getViewport()->getCamera().setZoomDistance(20);
+
+    loop = [&] {
+      glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+              GL_STENCIL_BUFFER_BIT);
+
+      theScene->getViewport()->getCamera().setPointingAt(x, y, z);
+      x += 0.01;
+
+      theScene->render();
+
+      glfwSwapBuffers(window);
+      glfwPollEvents();
+    };
+
+    emscripten_set_main_loop(main_loop, 0, true);
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    exit(EXIT_SUCCESS);
 
     return 0;
   } catch (const std::exception &e) {
