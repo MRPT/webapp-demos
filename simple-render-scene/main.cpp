@@ -71,48 +71,6 @@ void TestDisplay3D() {
 
   theScene = COpenGLScene::Create();
 
-  // Add a clone viewport, using [0,1] factor X,Y,Width,Height coordinates:
-  {
-    COpenGLViewport::Ptr vi = theScene->createViewport("myClone");
-    vi->setViewportPosition(0.7, 0.05, 0.28, 0.28);
-    vi->setCloneView("main");
-    vi->setTransparent(true);
-    vi->getCamera().setAzimuthDegrees(45);
-    vi->getCamera().setElevationDegrees(45);
-    vi->getCamera().setZoomDistance(10);
-  }
-
-  // Another clone viewport, using absolute coordinates
-  {
-    COpenGLViewport::Ptr vi = theScene->createViewport("myClone2");
-    vi->setViewportPosition(
-        /*x px*/ -250, /*y px*/ -250, /*width px*/ 250,
-        /*height px*/ 200); // x,y negative means pixels from the
-    // top/right, instead of from the bottom/left.
-    vi->setCloneView("main");
-    vi->setTransparent(false);
-    vi->getCamera().setAzimuthDegrees(-95);
-    vi->getCamera().setElevationDegrees(30);
-    vi->getCamera().setZoomDistance(8);
-  }
-
-  // And another transparent viewport just to show 3D text:
-  if (false) {
-    mrpt::opengl::CText::Ptr txt1 = mrpt::opengl::CText::Create();
-    COpenGLViewport::Ptr vi = theScene->createViewport("flat_viewport");
-    vi->setViewportPosition(0, 0, 0.3, 0.3);
-    vi->setTransparent(true);
-    vi->setBorderSize(0);
-    vi->getCamera().setAzimuthDegrees(0);
-    vi->getCamera().setElevationDegrees(90);
-    vi->getCamera().setZoomDistance(5);
-    vi->getCamera().setOrthogonal(true);
-
-    vi->insert(txt1);
-  }
-
-  // Modify the scene:
-  // ------------------------------------------------------
   {
     opengl::CGridPlaneXY::Ptr obj =
         opengl::CGridPlaneXY::Create(-20, 20, -20, 20, 0, 1);
@@ -169,7 +127,7 @@ void TestDisplay3D() {
 
   attrs.enableExtensionsByDefault = 1;
   attrs.majorVersion = 3;
-  attrs.minorVersion = 0;
+  attrs.minorVersion = 3;
 
   EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context =
       emscripten_webgl_create_context("#canvas", &attrs);
@@ -179,8 +137,8 @@ void TestDisplay3D() {
   }
 
   emscripten_webgl_make_context_current(context);
-  glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   // std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
 
