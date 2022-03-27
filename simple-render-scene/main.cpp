@@ -22,6 +22,7 @@
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/CSphere.h>
 #include <mrpt/opengl/CText.h>
+#include <mrpt/opengl/stock_objects.h>
 #include <stdio.h>
 
 #include <iostream>
@@ -31,10 +32,31 @@ static mrpt::opengl::COpenGLScene::Ptr theScene;
 static void error_callback(int error, const char *description) {
   fprintf(stderr, "Error: %s\n", description);
 }
+
+float camx = 0, camy = 0, camz = 0;
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action,
                          int mods) {
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+  if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+    switch (key) {
+    case GLFW_KEY_UP:
+      camy -= 0.03;
+      break;
+    case GLFW_KEY_DOWN:
+      camy += 0.03;
+      break;
+    case GLFW_KEY_LEFT:
+      camx -= 0.03;
+      break;
+    case GLFW_KEY_RIGHT:
+      camx += 0.03;
+      break;
+
+    default:
+      break;
+    }
+  }
 }
 
 std::function<void()> loop;
@@ -63,6 +85,8 @@ void TestDisplay3D() {
     obj->setAxisLimits(-10, -10, -10, 10, 10, 10);
     theScene->insert(obj);
   }
+
+  theScene->insert(mrpt::opengl::stock_objects::CornerXYZ(1.0f));
 
   {
     opengl::CBox::Ptr obj = opengl::CBox::Create();
@@ -125,27 +149,34 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
 
+    { // Fix background alpha:
+      EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx =
+          emscripten_webgl_get_current_context();
+    }
+
     glfwSwapInterval(1);
 
     TestDisplay3D();
 
     // std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
 
-    float x = 0, y = 0, z = 0;
     theScene->getViewport()->getCamera().setZoomDistance(20);
 
     loop = [&] {
-      glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-              GL_STENCIL_BUFFER_BIT);
+      try {
+        glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                GL_STENCIL_BUFFER_BIT);
 
-      theScene->getViewport()->getCamera().setPointingAt(x, y, z);
-      x += 0.01;
+        theScene->getViewport()->getCamera().setPointingAt(camx, camy, camz);
 
-      theScene->render();
+        theScene->render();
 
-      glfwSwapBuffers(window);
-      glfwPollEvents();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+      } catch (const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+      }
     };
 
     emscripten_set_main_loop(main_loop, 0, true);
