@@ -149,11 +149,6 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
 
-    { // Fix background alpha:
-      EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx =
-          emscripten_webgl_get_current_context();
-    }
-
     glfwSwapInterval(1);
 
     TestDisplay3D();
