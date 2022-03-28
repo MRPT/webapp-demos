@@ -1,2 +1,3 @@
-simple-render-scene/.vscode
-simple-render-scene/build*
+*/.vscode
+*/build*
+*/CMakeLists.txt.*
